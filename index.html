@@ -572,10 +572,11 @@
 
     @media (max-width: 1024px) {
       .dashboard {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
+        display: flex;
+        flex-direction: column;
         height: auto;
-        overflow-y: auto;
+        min-height: 100vh;
+        gap: 1px;
       }
 
       body {
@@ -614,15 +615,18 @@
       }
 
       .security-feed {
-        max-height: 400px;
+        min-height: 200px;
+        max-height: 50vh;
       }
 
       .protocol-tracker {
-        max-height: 300px;
+        min-height: 150px;
+        max-height: 40vh;
       }
 
       .signal-stream {
-        max-height: 300px;
+        min-height: 150px;
+        max-height: 40vh;
       }
 
       .detail-card {
@@ -712,7 +716,7 @@
   <div class="loading" id="loading">INITIALIZING SIGNAL...</div>
 
   <!-- Main Dashboard -->
-  <div class="dashboard" id="dashboard" style="opacity: 0;">
+  <div class="dashboard" id="dashboard" style="opacity: 0; transition: opacity 0.5s;">
     <!-- Header Bar -->
     <div class="header panel-reveal">
       <div class="header-left">
@@ -1578,12 +1582,18 @@
         setupCanvasInteraction();
       } catch (error) {
         console.error('Initialization error:', error);
-      } finally {
-        // ALWAYS dismiss loading screen after max 1.5s
-        setTimeout(() => {
-          document.getElementById('loading').classList.add('hidden');
-          document.getElementById('dashboard').style.opacity = '1';
-        }, 1500);
+      } catch (initErr) {
+        console.error('Init error:', initErr);
+      }
+      // ALWAYS dismiss loading screen — immediately if data loaded, 1.5s max otherwise
+      const dismiss = () => {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('dashboard').style.opacity = '1';
+      };
+      if (currentData && currentData.spaces && currentData.spaces.length > 0) {
+        setTimeout(dismiss, 500);
+      } else {
+        setTimeout(dismiss, 1500);
       }
     }
 
