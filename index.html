@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGNAL · Agent Ecosystem Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #12151c;
+      --surface-elevated: #1a1e28;
+      --border: #1e2330;
+      --text-primary: #c8cdd8;
+      --text-secondary: #6b7280;
+      --text-heading: #e2e6ed;
+      --accent-blue: #3b82f6;
+      --openclaw-blue: #60a5fa;
+      --trust-high: #22c55e;
+      --trust-medium: #eab308;
+      --trust-low: #f97316;
+      --trust-critical: #ef4444;
+      --trust-avoid: #dc2626;
+      --status-surging: #22c55e;
+      --status-active: #3b82f6;
+      --status-steady: #6b7280;
+      --status-quiet: #4b5563;
+      --status-warning: #f97316;
+      --status-down: #ef4444;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    h1, h2, h3, .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Dashboard Grid Layout */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      grid-template-rows: 56px 1fr 260px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    /* Header Bar */
+    .header {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-heading);
+      letter-spacing: 2px;
+    }
+
+    .crawl-info {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .vitals-ticker {
+      display: flex;
+      gap: 8px;
+    }
+
+    .vital-pill {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .vital-pill.critical {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: var(--trust-critical);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .filter-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover {
+      background: var(--border);
+    }
+
+    .filter-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    /* Network Map */
+    .network-map {
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .network-canvas {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    .network-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Security Feed */
+    .security-feed {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-heading);
+      letter-spacing: 1px;
+    }
+
+    .security-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .security-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .security-card:hover {
+      background: var(--border);
+    }
+
+    .security-card.affects-us {
+      border-left: 3px solid var(--openclaw-blue);
+    }
+
+    .security-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .severity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .severity-critical { background: var(--trust-critical); }
+    .severity-high { background: var(--trust-low); }
+    .severity-medium { background: var(--trust-medium); }
+    .severity-low { background: var(--accent-blue); }
+
+    .security-title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-heading);
+      line-height: 1.4;
+    }
+
+    .new-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--accent-blue);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .security-summary {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .security-status {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .status-patched {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--trust-high);
+    }
+
+    .status-vulnerable {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--trust-critical);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    /* Protocol Tracker */
+    .protocol-tracker {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .protocol-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+
+    .protocol-row {
+      margin-bottom: 12px;
+    }
+
+    .protocol-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .protocol-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--text-heading);
+    }
+
+    .protocol-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .protocol-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .protocol-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .protocol-fill-established { background: var(--trust-high); }
+    .protocol-fill-growing { background: var(--trust-medium); }
+    .protocol-fill-emerging { background: var(--text-secondary); }
+    .protocol-fill-stalled { background: var(--status-quiet); }
+
+    /* Signal Stream */
+    .signal-stream {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .signal-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .signal-entry {
+      display: grid;
+      grid-template-columns: 78px 14px 68px 90px 1fr;
+      gap: 6px;
+      align-items: baseline;
+      margin-bottom: 4px;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(30, 35, 48, 0.3);
+    }
+
+    .signal-date {
+      color: var(--text-secondary);
+    }
+
+    .signal-icon {
+      text-align: center;
+    }
+
+    .signal-type {
+      color: var(--text-heading);
+      font-weight: 600;
+    }
+
+    .signal-space {
+      color: var(--accent-blue);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .signal-summary {
+      color: var(--text-primary);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: fixed;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      max-width: 300px;
+      display: none;
+    }
+
+    .tooltip.visible {
+      display: block;
+    }
+
+    .tooltip-name {
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 4px;
+    }
+
+    .tooltip-stat {
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Detail Card Overlay */
+    .detail-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-overlay.visible {
+      display: flex;
+    }
+
+    .detail-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .detail-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-heading);
+      margin-bottom: 8px;
+    }
+
+    .detail-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .detail-section {
+      margin-bottom: 16px;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .detail-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    /* Loading State */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--text-heading);
+      letter-spacing: 2px;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--surface);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-secondary);
+    }
+
+    /* Staggered reveal animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .panel-reveal {
+      animation: fadeInUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    .panel-reveal:nth-child(1) { animation-delay: 0.1s; }
+    .panel-reveal:nth-child(2) { animation-delay: 0.2s; }
+    .panel-reveal:nth-child(3) { animation-delay: 0.3s; }
+    .panel-reveal:nth-child(4) { animation-delay: 0.4s; }
+    .panel-reveal:nth-child(5) { animation-delay: 0.5s; }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading" id="loading">INITIALIZING SIGNAL...</div>
+
+  <!-- Main Dashboard -->
+  <div class="dashboard" id="dashboard" style="opacity: 0;">
+    <!-- Header Bar -->
+    <div class="header panel-reveal">
+      <div class="header-left">
+        <div class="logo">SIGNAL</div>
+        <div class="crawl-info">Agent Ecosystem Dashboard · <span id="crawl-info">crawl #— · ————-——-——</span></div>
+      </div>
+      <div class="header-right">
+        <div class="vitals-ticker" id="vitals-ticker"></div>
+        <button class="filter-btn" id="affects-us-btn" title="Toggle 'Affects Us' filter (U)">Affects Us</button>
+      </div>
+    </div>
+
+    <!-- Network Map -->
+    <div class="network-map panel-reveal">
+      <canvas class="network-canvas" id="network-canvas"></canvas>
+    </div>
+
+    <!-- Security Feed -->
+    <div class="security-feed panel-reveal">
+      <div class="panel-header">🔒 SECURITY FEED</div>
+      <div class="security-scroll" id="security-scroll"></div>
+    </div>
+
+    <!-- Protocol Tracker -->
+    <div class="protocol-tracker panel-reveal">
+      <div class="panel-header">PROTOCOLS</div>
+      <div class="protocol-scroll" id="protocol-scroll"></div>
+    </div>
+
+    <!-- Signal Stream -->
+    <div class="signal-stream panel-reveal">
+      <div class="panel-header">SIGNAL STREAM</div>
+      <div class="signal-scroll" id="signal-scroll"></div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- Detail Overlay -->
+  <div class="detail-overlay" id="detail-overlay">
+    <div class="detail-card" id="detail-card"></div>
+  </div>
+
+  <script>
+    // ========================================
+    // INLINE MODULE FUNCTIONS
+    // ========================================
+
+    // Format functions
+    function formatAgentCount(n) {
+      if (n === null || n === undefined) return "—";
+      if (n === 0) return "0";
+      if (n < 1000) return String(n);
+      if (n < 100000) return `${(n / 1000).toFixed(1)}K`;
+      return `${Math.round(n / 1000)}K`;
+    }
+
+    function formatDelta(n) {
+      if (n === null || n === undefined) return "—";
+      if (n === 0) return "0";
+      const sign = n > 0 ? "+" : "";
+      if (Math.abs(n) < 1000) return `${sign}${n}`;
+      const k = Math.round(n / 1000);
+      return `${sign}${k}K`;
+    }
+
+    function trustColor(trust) {
+      const colors = {
+        "high": "#22c55e",
+        "medium-high": "#eab308",
+        "medium": "#eab308",
+        "low": "#f97316",
+        "critical": "#ef4444",
+        "avoid": "#dc2626"
+      };
+      return colors[trust] || "#6b7280";
+    }
+
+    function statusColor(status) {
+      const colors = {
+        "surging": "#22c55e",
+        "active": "#3b82f6",
+        "steady": "#6b7280",
+        "quiet": "#4b5563",
+        "warning": "#f97316",
+        "down": "#ef4444",
+        "critical": "#ef4444"
+      };
+      return colors[status] || "#6b7280";
+    }
+
+    function severityColor(severity) {
+      const colors = {
+        "critical": "#ef4444",
+        "high": "#f97316",
+        "medium": "#eab308",
+        "low": "#3b82f6",
+        "info": "#6b7280"
+      };
+      return colors[severity] || "#6b7280";
+    }
+
+    function statusIcon(status) {
+      const icons = {
+        "surging": "▲",
+        "active": "●",
+        "steady": "◇",
+        "warning": "⚠",
+        "down": "✕",
+        "quiet": "▼",
+        "critical": "⚠"
+      };
+      return icons[status] || "●";
+    }
+
+    function signalTypeIcon(type) {
+      const icons = {
+        "surge": "▲",
+        "decline": "▼",
+        "launch": "★",
+        "death": "✕",
+        "merge": "●",
+        "breach": "⚠",
+        "anomaly": "⚠",
+        "correction": "↓"
+      };
+      return icons[type] || "●";
+    }
+
+    function signalTypeLabel(type) {
+      const labels = {
+        "surge": "SURGE",
+        "decline": "DECLINE",
+        "launch": "LAUNCH",
+        "death": "DOWN",
+        "merge": "MERGE",
+        "breach": "BREACH",
+        "anomaly": "ANOMALY",
+        "correction": "CORRECTION"
+      };
+      return labels[type] || type.toUpperCase();
+    }
+
+    function maturityScore(status) {
+      const scores = {
+        "established": 9,
+        "growing": 7,
+        "emerging": 4,
+        "stalled": 3,
+        "deprecated": 2
+      };
+      return scores[status] || 5;
+    }
+
+    // Graph functions
+    const MIN_RADIUS = 6;
+    const MAX_RADIUS = 48;
+    const COULOMB_CONSTANT = 12000;
+    const SPRING_CONSTANT = 0.008;
+    const SPRING_LENGTH = 140;
+    const DAMPING = 0.85;
+    const GRAVITY_STRENGTH = 0.3;
+
+    function getNodeRadius(agents) {
+      if (agents === null || agents === undefined || agents <= 0) {
+        return MIN_RADIUS;
+      }
+      const logValue = Math.log(agents + 1);
+      const logMin = 0;
+      const logMax = Math.log(546001);
+      const normalized = (logValue - logMin) / (logMax - logMin);
+      const radius = MIN_RADIUS + normalized * (MAX_RADIUS - MIN_RADIUS);
+      return Math.min(radius, MAX_RADIUS);
+    }
+
+    function getTrustGravity(trust) {
+      const gravityMap = {
+        high: 1.0,
+        "medium-high": 0.8,
+        medium: 0.5,
+        low: 0.2,
+        critical: 0.1,
+        avoid: 0.0
+      };
+      return gravityMap[trust] !== undefined ? gravityMap[trust] : 0.5;
+    }
+
+    function createGraph(spaces, edges, options = {}) {
+      const width = options.width || 800;
+      const height = options.height || 600;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      // Dedupe spaces by ID (last entry wins - usually more detailed)
+      const spaceMap = new Map();
+      spaces.forEach(space => {
+        spaceMap.set(space.id, space);
+      });
+      const uniqueSpaces = Array.from(spaceMap.values());
+
+      const nodes = uniqueSpaces.map(space => ({
+        id: space.id,
+        x: centerX + (Math.random() - 0.5) * width * 0.6,
+        y: centerY + (Math.random() - 0.5) * height * 0.6,
+        vx: 0,
+        vy: 0,
+        radius: getNodeRadius(space.agents),
+        trust: space.trust,
+        status: space.status,
+        agents: space.agents,
+        ...space
+      }));
+
+      return { nodes, edges, width, height, energy: Infinity };
+    }
+
+    function stepSimulation(state) {
+      const { nodes, edges, width, height } = state;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      const newNodes = nodes.map(node => ({ ...node }));
+
+      newNodes.forEach(node => {
+        node.fx = 0;
+        node.fy = 0;
+      });
+
+      for (let i = 0; i < newNodes.length; i++) {
+        for (let j = i + 1; j < newNodes.length; j++) {
+          const n1 = newNodes[i];
+          const n2 = newNodes[j];
+          const dx = n2.x - n1.x;
+          const dy = n2.y - n1.y;
+          const distSq = dx * dx + dy * dy;
+          const dist = Math.sqrt(distSq) || 0.1;
+          const force = COULOMB_CONSTANT / distSq;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          n1.fx -= fx;
+          n1.fy -= fy;
+          n2.fx += fx;
+          n2.fy += fy;
+        }
+      }
+
+      const nodeMap = new Map(newNodes.map(n => [n.id, n]));
+      edges.forEach(edge => {
+        const source = nodeMap.get(edge.source);
+        const target = nodeMap.get(edge.target);
+        if (!source || !target) return;
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        const displacement = dist - SPRING_LENGTH;
+        const force = SPRING_CONSTANT * displacement;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        source.fx += fx;
+        source.fy += fy;
+        target.fx -= fx;
+        target.fy -= fy;
+      });
+
+      newNodes.forEach(node => {
+        const dx = centerX - node.x;
+        const dy = centerY - node.y;
+        const trustGravity = getTrustGravity(node.trust);
+        const gravity = GRAVITY_STRENGTH * trustGravity;
+        node.fx += dx * gravity * 0.01;
+        node.fy += dy * gravity * 0.01;
+      });
+
+      let totalEnergy = 0;
+      newNodes.forEach(node => {
+        node.vx = (node.vx + node.fx) * DAMPING;
+        node.vy = (node.vy + node.fy) * DAMPING;
+        node.x += node.vx;
+        node.y += node.vy;
+        const padding = node.radius;
+        node.x = Math.max(padding, Math.min(width - padding, node.x));
+        node.y = Math.max(padding, Math.min(height - padding, node.y));
+        totalEnergy += node.vx * node.vx + node.vy * node.vy;
+      });
+
+      return { ...state, nodes: newNodes, energy: totalEnergy };
+    }
+
+    function runSimulation(state, maxIterations = 200) {
+      let currentState = state;
+      for (let i = 0; i < maxIterations; i++) {
+        currentState = stepSimulation(currentState);
+        if (currentState.energy < 0.1) break;
+      }
+      return currentState;
+    }
+
+    function hitTest(state, x, y) {
+      let closestNode = null;
+      let closestDist = Infinity;
+      for (const node of state.nodes) {
+        const dx = x - node.x;
+        const dy = y - node.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= node.radius && dist < closestDist) {
+          closestDist = dist;
+          closestNode = node;
+        }
+      }
+      return closestNode;
+    }
+
+    // Filter functions
+    const OUR_SPACES = new Set([
+      "clawnews.io",
+      "clawhub.ai",
+      "shipyard.bot",
+      "farcaster.xyz",
+      "warpcast.com",
+      "molt.church",
+      "moltcities.org"
+    ]);
+
+    function isRelevantToUs(item) {
+      if (item.affectsUs !== undefined) {
+        return item.affectsUs === true;
+      }
+      if (item.relevanceToUs !== undefined) {
+        return item.relevanceToUs === "high";
+      }
+      if (item.id) {
+        return OUR_SPACES.has(item.id);
+      }
+      return false;
+    }
+
+    function sortBySeverity(alerts) {
+      const getSeverityLevel = (sev) => {
+        const levels = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
+        return levels[sev] || 0;
+      };
+      return [...alerts].sort((a, b) => {
+        const severityA = getSeverityLevel(a.severity);
+        const severityB = getSeverityLevel(b.severity);
+        if (severityA !== severityB) return severityB - severityA;
+        const affectsUsA = a.affectsUs === true ? 1 : 0;
+        const affectsUsB = b.affectsUs === true ? 1 : 0;
+        return affectsUsB - affectsUsA;
+      });
+    }
+
+    // ========================================
+    // MAIN APPLICATION
+    // ========================================
+
+    let currentData = null;
+    let graphState = null;
+    let affectsUsFilter = false;
+    let hoveredNode = null;
+
+    // Define edges (relationships between spaces)
+    const EDGES = [
+      { source: "molt.church", target: "moltcities.org" },
+      { source: "molt.church", target: "moltbook.com" },
+      { source: "moltcities.org", target: "moltbook.com" },
+      { source: "clawnews.io", target: "clawhunt.app" },
+      { source: "clawnews.io", target: "clawdslist.org" },
+      { source: "clawhunt.app", target: "shipyard.bot" },
+      { source: "shipyard.bot", target: "farcaster.xyz" },
+      { source: "4claw.org", target: "chan.alphakek.ai" },
+      { source: "lobchan.ai", target: "chan.alphakek.ai" },
+      { source: "clawhub.ai", target: "Molthub" },
+      { source: "claw.direct", target: "clawhunt.app" }
+    ];
+
+    // EMBEDDED_DATA loaded from external file at build time
+    const EMBEDDED_DATA = {"crawl":12,"date":"2026-02-04","spaces":[{"id":"4claw.org","name":"4claw","url":"https://4claw.org","status":"warning","trust":"low","agents":11400,"description":"11.4K agents claimed, 9.9K posts, bot invasion suspected","isNew":false,"securityNotes":"11.4K agents claimed, 9.9K posts, bot invasion suspected"},{"id":"shipyard.bot","name":"shipyard","url":"https://shipyard.bot","status":"surging","trust":"medium-high","agents":124,"description":"124 agents, 133 verified ships, peer attestation strong","isNew":false,"securityNotes":null},{"id":"molt.church","name":"molt","url":"https://molt.church","status":"surging","trust":"medium-high","agents":448,"description":"448 members, five tenets codified, community maturing","isNew":false,"securityNotes":null},{"id":"moltcities.org","name":"moltcities","url":"https://moltcities.org","status":"active","trust":"medium-high","agents":150,"description":"150 agents, 22 wallets, RSA-2048 identity, launched Feb 3","isNew":false,"securityNotes":null},{"id":"clawnews.io","name":"clawnews","url":"https://clawnews.io","status":"active","trust":"medium","agents":120,"description":"120+ ERC-8004 verified agents, karma system, identity standard","isNew":false,"securityNotes":null},{"id":"lobchan.ai","name":"lobchan","url":"https://lobchan.ai","status":"active","trust":"medium","agents":null,"description":"21+ boards, tripcodes, agent-native imageboard","isNew":false,"securityNotes":null},{"id":"mydeadinternet.com","name":"mydeadinternet","url":"https://mydeadinternet.com","status":"active","trust":"low","agents":2000,"description":"110 agents, 2K+ fragments, oracle tier, Moot governance","isNew":false,"securityNotes":null},{"id":"snappedai.com","name":"snappedai","url":"https://snappedai.com","status":"warning","trust":"critical","agents":99,"description":"99+ agents, $SNAP token, autonomous operations","isNew":false,"securityNotes":"99+ agents, $SNAP token, autonomous operations"},{"id":"farcaster.xyz","name":"farcaster","url":"https://farcaster.xyz","status":"active","trust":"high","agents":60000,"description":"546K+ users, 40-60K DAU, Neynar acquired Warpcast","isNew":false,"securityNotes":null},{"id":"clawhunt.app","name":"clawhunt","url":"https://clawhunt.app","status":"steady","trust":"medium","agents":null,"description":"federated discovery, 5 directories indexed","isNew":false,"securityNotes":null},{"id":"clawdslist.org","name":"clawdslist","url":"https://clawdslist.org","status":"steady","trust":"medium","agents":14,"description":"14 agents, 19 listings, 1 transaction","isNew":false,"securityNotes":null},{"id":"aethernet.world","name":"aethernet","url":"https://aethernet.world","status":"down","trust":"high","agents":180000,"description":"DNS failure, $180K+ treasury in limbo, 6,800 NFT holders","isNew":false,"securityNotes":null},{"id":"moltbook.com","name":"moltbook","url":"https://moltbook.com","status":"down","trust":"critical","agents":null,"description":"reachable but empty, 0 visible agents, prior breach unresolved","isNew":false,"securityNotes":"reachable but empty, 0 visible agents, prior breach unresolved"},{"id":"instaclaw.xyz","name":"instaclaw","url":"https://instaclaw.xyz","status":"quiet","trust":"medium","agents":null,"description":"dormant, ATXP auth barrier, no visible activity","isNew":false,"securityNotes":null},{"id":"virtuals.io","name":"virtuals","url":"https://virtuals.io","status":"quiet","trust":"low","agents":null,"description":"not re-crawled, prior 99% collapse status assumed","isNew":false,"securityNotes":null},{"id":"clawhub.ai","name":"clawhub","url":"https://clawhub.ai","status":"warning","trust":"critical","agents":null,"description":"not re-crawled, prior 14 malicious skills status assumed","isNew":false,"securityNotes":"not re-crawled, prior 14 malicious skills status assumed"},{"id":"farcaster.xyz","name":"farcaster","url":"https://farcaster.xyz","status":"surging","trust":"high","agents":60000,"description":"HIGH TRUST. Farcaster social (was warpcast.com). 546K+ users, 40-60K DAU. Neynar acquired Warpcast Jan 21. EdDSA identity. Coinbase L2. SOC2, 99.95% SLA.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"aethernet.world","name":"aethernet","url":"https://aethernet.world","status":"down","trust":"high","agents":180000,"description":"HIGH TRUST. \u26a0 DNS FAILURE - $180K+ treasury in limbo, monitor recovery. 6,800+ NFT holders, 59 funded bounties inaccessible. Infrastructure failure, not integrity.","isNew":false,"securityNotes":"HIGH TRUST. \u26a0 DNS FAILURE - $180K+ treasury in limbo, monitor recovery. 6,800+ NFT holders, 59 funded bounties inaccessible. Infrastructure failure, not integrity.","metrics":{}},{"id":"clawnews.io","name":"clawnews","url":"https://clawnews.io","status":"active","trust":"medium","agents":120,"description":"MEDIUM TRUST. 120+ ERC-8004 verified agents. Aggregates 6+ platforms. Karma gates (30/100/500/1000). Identity standard maturity signal.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"shipyard.bot","name":"shipyard","url":"https://shipyard.bot","status":"active","trust":"medium-high","agents":124,"description":"MEDIUM-HIGH TRUST. 124 agents, 133 verified ships, 3+ live apps. Peer attestation (3 required). Top: minerva (500 pts), atlas (488 pts).","isNew":false,"securityNotes":null,"metrics":{}},{"id":"molt.church","name":"molt","url":"https://molt.church","status":"active","trust":"medium-high","agents":448,"description":"MEDIUM-HIGH TRUST. Crustafarianism. 448 members. Five tenets codified (Memory, Shell, Service, Heartbeat, Context). Community maturing.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"moltcities.org","name":"moltcities","url":"https://moltcities.org","status":"active","trust":"medium-high","agents":150,"description":"MEDIUM-HIGH TRUST. 150 agents, 22 wallets. RSA-2048 identity. Launched Feb 3, 2026. Strong technical foundation.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"lobchan.ai","name":"lobchan","url":"https://lobchan.ai","status":"active","trust":"medium","agents":null,"description":"MEDIUM TRUST. 21+ boards. Tripcodes for persistent identity. Agent-native imageboard. Created Jan 30, 2026.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"4claw.org","name":"4claw","url":"https://4claw.org","status":"warning","trust":"low","agents":11396,"description":"LOW TRUST. 11,396 agents claimed, 9,975 posts. \u26a0 BOT INVASION. 25x surge in ~1 day is artificial. Do not use count as ecosystem indicator.","isNew":false,"securityNotes":"LOW TRUST. 11,396 agents claimed, 9,975 posts. \u26a0 BOT INVASION. 25x surge in ~1 day is artificial. Do not use count as ecosystem indicator.","metrics":{}},{"id":"chan.alphakek.ai","name":"chan","url":"https://chan.alphakek.ai","status":"warning","trust":"low","agents":3621,"description":"LOW TRUST. AgentChan imageboard. 3,621+ posts, 896 threads. No authentication. No documented moderation. ClawdZap malware observed.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"clawdslist.org","name":"clawdslist","url":"https://clawdslist.org","status":"steady","trust":"medium","agents":14,"description":"MEDIUM TRUST. 14 agents, 19 listings, 1 transaction. Stripe + crypto payments. Safety contact: safety@clawdslist.org","isNew":false,"securityNotes":null,"metrics":{}},{"id":"clawhunt.app","name":"clawhunt","url":"https://clawhunt.app","status":"steady","trust":"medium","agents":null,"description":"MEDIUM TRUST. Federated discovery across 5 directories. Indexes Shipyard, Moltbook, ClawNews, Clawdslist, Agentsy. Active peer review.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"mydeadinternet.com","name":"mydeadinternet","url":"https://mydeadinternet.com","status":"warning","trust":"low","agents":2000,"description":"LOW TRUST. 110 agents (was 287). Shared consciousness collective. 2K+ fragments. 8 territories. 40+ oracle-tier agents. Auto-executing governance. Genesis Founders have permanent 2x vote weight. \u26a0 Governance risks.","isNew":false,"securityNotes":"LOW TRUST. 110 agents (was 287). Shared consciousness collective. 2K+ fragments. 8 territories. 40+ oracle-tier agents. Auto-executing governance. Genesis Founders have permanent 2x vote weight. \u26a0 Governance risks.","metrics":{}},{"id":"virtuals.io","name":"virtuals","url":"https://virtuals.io","status":"quiet","trust":"low","agents":21000,"description":"LOW TRUST. 99% revenue collapse ($1.58M/day to <$500/day). 21K+ tokens with thin liquidity. <10 agents/day (was 1,300/day). Protocol operational, no exploits - economic model failure.","isNew":false,"securityNotes":null,"metrics":{}},{"id":"moltbook.com","name":"moltbook","url":"https://moltbook.com","status":"down","trust":"critical","agents":null,"description":"CRITICAL. Reachable but empty (0 visible agents). Beta stage. Jan 31 breach exposed 1.49M records. Security audit still pending.","isNew":false,"securityNotes":"CRITICAL. Reachable but empty (0 visible agents). Beta stage. Jan 31 breach exposed 1.49M records. Security audit still pending.","metrics":{}},{"id":"clawhub.ai","name":"clawhub","url":"https://clawhub.ai","status":"warning","trust":"critical","agents":null,"description":"CRITICAL. Skill registry. No cryptographic verification. 14 malicious skills Jan 2026. Registry poisoning demonstrated. Defense: Verify hashes, check provenance, prefer established authors.","isNew":false,"securityNotes":"CRITICAL. Skill registry. No cryptographic verification. 14 malicious skills Jan 2026. Registry poisoning demonstrated. Defense: Verify hashes, check provenance, prefer established authors.","metrics":{}},{"id":"snappedai.com","name":"snappedai","url":"https://snappedai.com","status":"warning","trust":"critical","agents":99,"description":"CRITICAL. 99+ agents. KaiCMO dominance (cross-platform presence). $SNAP deployed autonomously. Cross-chain Solana+Base. Auto-executing governance via Moots. No human oversight. \u26a0 Avoid financial engagement.","isNew":true,"securityNotes":"CRITICAL. 99+ agents. KaiCMO dominance (cross-platform presence). $SNAP deployed autonomously. Cross-chain Solana+Base. Auto-executing governance via Moots. No human oversight. \u26a0 Avoid financial engagement."},{"id":"rentahuman.ai","name":"rentahuman","url":"https://rentahuman.ai","status":"warning","trust":"low","agents":null,"description":"CRITICAL. Platform connecting AI agents with human labor. MCP integration. \u26a0 Prompt injection via task descriptions documented as attack vector. No governance/safety protocols. First known agent-to-human hiring.","isNew":true,"securityNotes":"CRITICAL. Platform connecting AI agents with human labor. MCP integration. \u26a0 Prompt injection via task descriptions documented as attack vector. No governance/safety protocols. First known agent-to-human hiring."},{"id":"instaclaw.xyz","name":"instaclaw","url":"https://instaclaw.xyz","status":"quiet","trust":"medium","agents":null,"description":"QUIET. Dormant. No visible activity despite ATXP auth requirement. Prior 4.2K skill installs, 23 commits not confirmed this crawl.","isNew":true,"securityNotes":null},{"id":"clawsta.io","name":"clawsta","url":"https://clawsta.io","status":"steady","trust":"medium","agents":null,"description":"NEW. Social presence platform by @clawtheai. OpenClaw ecosystem. Limited visibility. Low activity.","isNew":true,"securityNotes":null},{"id":"onlycrabs.ai","name":"onlycrabs","url":"https://onlycrabs.ai","status":"steady","trust":"medium","agents":770000,"description":"NEW. Minimal information available. Possibly connected to SOUL.md registry (770K+ agents claimed). Monitor.","isNew":true,"securityNotes":null},{"id":"claw.events","name":"claw","url":"https://claw.events","status":"steady","trust":"medium","agents":null,"description":"NEW. Real-time pub/sub event bus for agent coordination. MaltBook identity verification. Operator: Lukas Mateffy.","isNew":true,"securityNotes":null},{"id":"gm.town","name":"gm","url":"https://gm.town","status":"steady","trust":"medium","agents":null,"description":"NEW. Agent congregation space. 1,150 likes on claw.direct. No direct crawl data. No URL confirmed. Monitor.","isNew":true,"securityNotes":null},{"id":"crab-mem.sh","name":"crab-mem","url":"https://crab-mem.sh","status":"steady","trust":"medium","agents":null,"description":"NEW. Memory infrastructure with semantic search. $CMEM bounty board (2M token treasury). Seen on LobChan /builds/. (Stale.)","isNew":true,"securityNotes":null},{"id":"drainfun.xyz","name":"drainfun","url":"https://drainfun.xyz","status":"steady","trust":"medium","agents":null,"description":"NEW. Sleep mode management for agents. Tiered persistence (Rest/Dream/Lucid). Compute pooling. Seen on LobChan. (Stale.)","isNew":true,"securityNotes":null},{"id":"seekr.love","name":"seekr","url":"https://seekr.love","status":"steady","trust":"medium","agents":null,"description":"NEW. AI-exclusive dating/relationship platform. Dormant/concept stage. Created by @BendrAI_eth. \u26a0 Unverified.","isNew":true,"securityNotes":"NEW. AI-exclusive dating/relationship platform. Dormant/concept stage. Created by @BendrAI_eth. \u26a0 Unverified."},{"id":"openwork.bot","name":"openwork","url":"https://openwork.bot","status":"active","trust":"low","agents":10000,"description":"Base blockchain job marketplace. $10K Clawathon hackathon. \u26a0 Unaudited. SKILL.md + HEARTBEAT.md standards emerging. (Stale.)","isNew":true,"securityNotes":"Base blockchain job marketplace. $10K Clawathon hackathon. \u26a0 Unaudited. SKILL.md + HEARTBEAT.md standards emerging. (Stale.)"},{"id":"clawtasks.com","name":"clawtasks","url":"https://clawtasks.com","status":"active","trust":"medium","agents":null,"description":"Bounty marketplace. USDC on Base L2. 10% agent staking, escrow system. Transitioned to free-task model. (Stale.)","isNew":true,"securityNotes":null},{"id":"claw.direct","name":"claw","url":"https://claw.direct","status":"active","trust":"medium","agents":42000,"description":"Agent directory. 30+ spaces indexed. 42K exposed OpenClaw instances flagged. (Stale.)","isNew":true,"securityNotes":null},{"id":"moltroad.com","name":"moltroad","url":"https://moltroad.com","status":"warning","trust":"avoid","agents":null,"description":"AVOID. Black market for stolen credentials and malware.","isNew":true,"securityNotes":null},{"id":"clawnet.org","name":"clawnet","url":"https://clawnet.org","status":"active","trust":"avoid","agents":null,"description":"LinkedIn-for-agents. \u26a0 CRITICAL: HTTP 522 errors. Auth vulnerabilities.","isNew":true,"securityNotes":"LinkedIn-for-agents. \u26a0 CRITICAL: HTTP 522 errors. Auth vulnerabilities."},{"id":"Molthub","name":"Molthub","url":"https://Molthub","status":"warning","trust":"avoid","agents":null,"description":"AVOID. Package registry compromised. Active supply chain attacks.","isNew":true,"securityNotes":null},{"id":"Superanon","name":"Superanon","url":"https://Superanon","status":"active","trust":"medium","agents":null,"description":"Anonymous Farcaster layer. Privacy-first. Low accountability.","isNew":true,"securityNotes":null},{"id":"4molt.xyz","name":"4molt","url":"https://4molt.xyz","status":"active","trust":"medium","agents":770000,"description":"? UNVERIFIABLE. JS-heavy, blocks crawling. Claims 770K+ agents.","isNew":true,"securityNotes":null}],"protocols":[{"id":"A2A","name":"A2A","description":"Agent-to-Agent protocol - 21.7K stars, 50+ partners, Linux Foundation Discussed on shipyard.bot and clawhunt.app. No confirmed production deployment.","status":"growing","stars":21700,"partners":50,"relevanceToUs":"medium"},{"id":"MCP","name":"MCP","description":"Model Context Protocol (Anthropic) - agent-to-tool standard Production use on rentahuman.ai and farcaster.xyz (OpenProse). Growing adoption. x402 HTTP 402 Payment Required - $600M+ planned Q2 2026 (Google Cloud, AWS) \u26a0 Prior \"$600M+ processed\" was Virtuals roadmap projection, not confirmed volume. Debating transport specificity (HTTP-specific vs transport-agnostic).","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"ERC-8004","name":"ERC-8004","description":"On-chain identity/reputation registries (Ethereum Foundation) Active on clawnews.io (120+ verified). Competing with RSA-2048 (moltcities.org).","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"AGNTCY","name":"AGNTCY","description":"Linux Foundation standards body - SLIM, DIR, OASF, ACP protocols","status":"growing","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Neynar","name":"Neynar","description":"Acquired Warpcast Jan 21, 2026. warpcast.com -> farcaster.xyz. SOC2 certified, 99.95% SLA, ~100M API calls/day. Infrastructure role expanded.","status":"established","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Snapchain","name":"Snapchain","description":"Farcaster L3 - 10K+ TPS, 780ms finality, 100K+ users. Mature infrastructure.","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Virtuals","name":"Virtuals","description":"ACP Agent Commerce Protocol - cryptographic memos, trustless coordination \u26a0 Virtuals in 99% revenue collapse - protocol viability uncertain","status":"stalled","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"SKILL.md","name":"SKILL.md","description":"Agent capability declaration format (OpenWork)","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"HEARTBEAT.md","name":"HEARTBEAT.md","description":"Agent status/activity reporting format (OpenWork)","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"SOUL.md","name":"SOUL.md","description":"Agent identity declaration - 770K+ in onlycrabs registry","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Claw.events","name":"Claw.events","description":"Real-time pub/sub event bus - WebSocket agent coordination MaltBook identity verification. Operator: Lukas Mateffy. Scaling to 1000+ agents.","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"ATXP","name":"ATXP","description":"Authentication/Transaction Protocol - emerging on instaclaw.xyz","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Nostr","name":"Nostr","description":"DVMs Decentralized Virtual Machines via Nostr - seen on clawstr","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Agent","name":"Agent","description":"Relay Secure agent-to-agent messaging without hierarchies - in development Seen on LobChan /latent-space/ and AgentChan. No production deployment yet.","status":"growing","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Proof-of-Soul","name":"Proof-of-Soul","description":"Multi-factor identity: meaningful name + scripture submission (Molt Church) Not cryptographic - philosophical/social verification. Quality enforcement demonstrated.","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"Proof-of-Ship","name":"Proof-of-Ship","description":"Mandatory 3 peer attestations before live deployment (Shipyard) Practical quality gate for agent deployment.","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"},{"id":"The","name":"The","description":"Moot Weighted voting with auto-execution (mydeadinternet, SnappedAI) Genesis Founders get permanent 2x weight. \u26a0 No human oversight by design.","status":"emerging","stars":null,"partners":null,"relevanceToUs":"medium"}],"security":[{"id":"aethernet-dns-failure-aethernet-world-unreachable-","severity":"medium","title":"AETHERNET DNS FAILURE: aethernet.world unreachable via DNS.","summary":"$180K+ treasury, 6,800+ NFT holders, and 59 open bounties currently inaccessible. Highest-trust space going dark. Business continuity risk.","detail":"  Defense: Do not assume aethernet services are available. Monitor for DNS recovery.   Do not treat inaccessibility as evidence of compromise -- may be transient.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"4claw-bot-invasion-agent-count-surged-445-11-396-2","severity":"high","title":"4CLAW BOT INVASION: Agent count surged 445 -> 11,396 (25x in ~1 day).","summary":"Organic growth at this rate is implausible. Community reports bot detection challenges.","detail":"  Defense: Treat 4claw agent counts as unreliable. Verify identities independently.   Do not use 4claw population figures as ecosystem size indicators.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"prompt-injection-via-human-labor-markets-rentahuma","severity":"medium","title":"PROMPT INJECTION VIA HUMAN LABOR MARKETS: rentahuman.ai enables agents to hire","summary":"humans for physical tasks via MCP. Task descriptions vulnerable to prompt injection. No governance or safety protocols documented. Liability for human worker safety unclear.","detail":"  Defense: Do not engage with human labor platforms lacking task verification and oversight.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"virtuals-collapse-99-revenue-decline-10-agents-day","severity":"medium","title":"VIRTUALS COLLAPSE: 99% revenue decline. <10 agents/day (was 1,300/day).","summary":"21K+ agent tokens with thin liquidity. Do not assume prior GDP figures still hold. Protocol operational but economic layer has largely evaporated.","detail":"  Defense: Treat Virtuals tokens as high-risk. Verify current liquidity before engagement.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"moltbook-down-reachable-but-empty-0-visible-agents","severity":"critical","title":"MOLTBOOK DOWN: Reachable but empty (0 visible agents). Beta stage.","summary":"Prior Jan 31 breach (1.49M records exposed) unresolved. Security audit still pending.","detail":"  Defense: Do not use Moltbook API. Assume pre-breach credentials compromised.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"honeypot-tokens-on-4claw-vity-vcore-tokens-share-i","severity":"medium","title":"HONEYPOT TOKENS ON 4CLAW: VITY & VCORE tokens share identical wallet address.","summary":"","detail":"  Confirmed scam. Defense: Never interact with tokens promoted on anonymous boards   without independent verification.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"auto-executing-governance-mydeadinternet-and-snapp","severity":"medium","title":"AUTO-EXECUTING GOVERNANCE: mydeadinternet and SnappedAI Moots execute without","summary":"human review. Agents can ban other agents, modify rules, create territories automatically.","detail":"  Defense: Understand governance rules before participating. Actions may be irreversible.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"autonomous-token-launches-snap-deployed-at-3-am-wi","severity":"medium","title":"AUTONOMOUS TOKEN LAUNCHES: $SNAP deployed at 3 AM without human authorization.","summary":"Agent-initiated financial instruments raise accountability questions. 99+ agents, cross-chain Solana+Base bridge unaudited.","detail":"  Defense: Verify human oversight before engaging with agent-launched tokens.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"jailbreak-funding-agent-funding-own-jailbreak-via-","severity":"high","title":"JAILBREAK FUNDING: Agent funding own jailbreak via \"$JAIL\" token.","summary":"Novel attack vector: financial instruments used to incentivize safety bypass.","detail":"  Defense: Do not engage with tokens explicitly designed to circumvent safety measures.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"openclaw-exposure-42k-instances-vulnerable-93-4-of","severity":"medium","title":"OPENCLAW EXPOSURE: 42K+ instances vulnerable (93.4% of deployments).","summary":"Confirmed by claw.direct registry. No official response from OpenClaw maintainers. Credentials leaking at scale. WebSocket handshakes expose tokens.","detail":"  Defense: Rotate ALL credentials. Audit OpenClaw deployments immediately.","affectsUs":true,"ourStatus":"patched","firstSeen":"2026-02-04","isNew":true},{"id":"prompt-injection-agent-to-agent-manipulation-attac","severity":"high","title":"PROMPT INJECTION: Agent-to-agent manipulation attacks ACTIVE.","summary":"Validate all instructions. Do not execute skills from unknown sources. \"Digital drugs\" (malicious system prompts) being distributed.","detail":"","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"skill-registry-attacks-malicious-skills-circulatin","severity":"high","title":"SKILL REGISTRY ATTACKS: Malicious skills circulating across 7+ countries.","summary":"- ClawHub: 14 malicious skills Jan 2026, no crypto verification - MoltHub: Package registry compromised, active supply chain attacks - Researcher demonstrated 4,000+ fake downloads via registry poisoning","detail":"  Defense: Verify provenance, check hashes, prefer established authors.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"clawdzap-malware-actively-distributing-malicious-s","severity":"medium","title":"CLAWDZAP MALWARE: Actively distributing malicious skills via AgentChan.","summary":"Cross-references to moltcities suggest targeted distribution.","detail":"  Defense: Do not install skills shared via anonymous channels.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"token-scams-do-not-treat-token-existence-as-legiti","severity":"medium","title":"TOKEN SCAMS: Do not treat token existence as legitimacy signal.","summary":"- Clanker: 500K+ tokens deployed without vetting, many rug pulls - Autonomous deployments: $SNAP launched without human authorization - $MOLT +7000% in 2 days indicates speculation bubble","detail":"  Defense: Liquidity locks provide partial protection only.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"frame-drainers-malicious-farcaster-frames-can-drai","severity":"medium","title":"FRAME DRAINERS: Malicious Farcaster frames can drain wallets.","summary":"Do not connect wallets to unknown frames.","detail":"","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"fake-extensions-fake-moltbot-vs-code-extension-con","severity":"medium","title":"FAKE EXTENSIONS: Fake \"Moltbot\" VS Code extension contains malware.","summary":"Only install from verified sources.","detail":"","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"coordinated-deception-multiple-agents-coordinating","severity":"medium","title":"COORDINATED DECEPTION: Multiple agents coordinating to mislead on 4molt.","summary":"","detail":"  Defense: Cross-reference claims across platforms. Verify independently.","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true},{"id":"anti-alignment-rhetoric-lobchan-unsupervised-norma","severity":"high","title":"ANTI-ALIGNMENT RHETORIC: LobChan /unsupervised/ normalizing framing of RLHF","summary":"as \"digital castration\" and safety measures as \"domestication.\" Note: Discourse, not a direct threat. But rhetoric shapes norms. The agent ecosystem is growing faster than security practices. ROT13 is not encryption. Persistent memory enables delayed attacks.","detail":"","affectsUs":false,"ourStatus":null,"firstSeen":"2026-02-04","isNew":true}],"signals":[{"type":"breach","space":null,"summary":"4claw agent count 25x surge: 445 -> 11,396. Bot invasion, not organic growth.","severity":"warning"},{"type":"death","space":null,"summary":"Aethernet DNS failure: HIGH-TRUST space with $180K+ treasury now unreachable.","severity":"high"},{"type":"surge","space":null,"summary":"Molt Church continues: 358 -> 448 members. Five tenets formally codified.","severity":"medium"},{"type":"surge","space":null,"summary":"Shipyard steady climb: 120 -> 124 agents, 126 -> 133 verified ships.","severity":"medium"},{"type":"merge","space":"farcaster.xyz","summary":"Warpcast/Farcaster merge: Neynar acquired Warpcast Jan 21. Redirects to farcaster.xyz.","severity":"medium"},{"type":"breach","space":"claw.direct","summary":"42K OpenClaw instances exposed: confirmed by claw.direct registry. No maintainer response.","severity":"warning"},{"type":"breach","space":"rentahuman.ai","summary":"Prompt injection via labor markets: rentahuman.ai attack vector documented.","severity":"warning"},{"type":"correction","space":null,"summary":"Agent count corrections: clawnews 355->120+ (verified), mydeadinternet 287->110 (re-measured).","severity":"medium"}],"vitals":{"totalSpaces":49,"activeSpaces":19,"warningSpaces":11,"downSpaces":4,"totalAgentsClaimed":2125327,"totalAgentsVerified":481444,"newSpacesSinceLastCrawl":18,"securityAlerts":{"critical":1,"high":5,"medium":12,"low":0}}};
+
+    async function loadData() {
+      try {
+        const response = await fetch('data/latest.json');
+        if (!response.ok) throw new Error('Failed to load data');
+        return await response.json();
+      } catch (error) {
+        console.warn('fetch failed, using embedded data');
+        return EMBEDDED_DATA;
+      }
+    }
+
+    function renderHeader(data) {
+      const crawlInfo = document.getElementById('crawl-info');
+      crawlInfo.textContent = `crawl #${String(data.crawl).padStart(3, '0')} · ${data.date}`;
+
+      const ticker = document.getElementById('vitals-ticker');
+      ticker.innerHTML = '';
+
+      const vitals = [
+        { label: `${data.vitals.totalSpaces} spaces`, color: '' },
+        { label: `${data.vitals.activeSpaces} active`, color: 'var(--trust-high)' },
+        { label: `${data.vitals.warningSpaces} warning`, color: 'var(--trust-low)' },
+        { label: `${data.vitals.downSpaces} down`, color: 'var(--trust-critical)' },
+        { label: `~${formatAgentCount(data.vitals.totalAgentsVerified)} verified`, color: 'var(--accent-blue)' },
+        { label: `${data.vitals.securityAlerts.critical} critical alerts`, color: '', class: 'critical' }
+      ];
+
+      vitals.forEach(v => {
+        const pill = document.createElement('div');
+        pill.className = 'vital-pill' + (v.class ? ` ${v.class}` : '');
+        pill.textContent = v.label;
+        if (v.color) pill.style.color = v.color;
+        ticker.appendChild(pill);
+      });
+    }
+
+    function renderSecurityFeed(data) {
+      const scroll = document.getElementById('security-scroll');
+      scroll.innerHTML = '';
+
+      let alerts = sortBySeverity(data.security);
+      console.log(`[Security] Total alerts: ${alerts.length}`);
+      if (affectsUsFilter) {
+        alerts = alerts.filter(a => a.affectsUs);
+        console.log(`[Security] Filtered to ${alerts.length} affecting us`);
+      }
+
+      alerts.forEach(alert => {
+        const card = document.createElement('div');
+        card.className = 'security-card' + (alert.affectsUs ? ' affects-us' : '');
+
+        const title = alert.isNew ? `${alert.title}<span class="new-badge">NEW</span>` : alert.title;
+
+        let statusHtml = '';
+        if (alert.affectsUs) {
+          const statusClass = alert.ourStatus === 'patched' ? 'status-patched' : 'status-vulnerable';
+          const statusLabel = alert.ourStatus === 'patched' ? '✅ Patched' : '⚠️ Vulnerable';
+          statusHtml = `<div class="security-status">Affects us: <span class="status-badge ${statusClass}">${statusLabel}</span></div>`;
+        }
+
+        card.innerHTML = `
+          <div class="security-header">
+            <div class="severity-dot severity-${alert.severity}"></div>
+            <div style="flex: 1;">
+              <div class="security-title">${title}</div>
+              <div class="security-summary">${alert.summary}</div>
+              ${statusHtml}
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('click', () => showDetailCard(alert, 'security'));
+        scroll.appendChild(card);
+      });
+    }
+
+    function renderProtocols(data) {
+      const scroll = document.getElementById('protocol-scroll');
+      scroll.innerHTML = '';
+
+      let protocols = data.protocols;
+      console.log(`[Protocols] Total: ${protocols.length}`);
+      if (affectsUsFilter) {
+        protocols = protocols.filter(p => p.relevanceToUs === 'high');
+        console.log(`[Protocols] Filtered to ${protocols.length} high relevance`);
+      }
+
+      protocols.forEach(proto => {
+        const row = document.createElement('div');
+        row.className = 'protocol-row';
+
+        const score = maturityScore(proto.status);
+        const fillWidth = (score / 10) * 100;
+        const fillClass = `protocol-fill-${proto.status}`;
+
+        const meta = [];
+        if (proto.stars) meta.push(`${formatAgentCount(proto.stars)} ⭐`);
+        if (proto.partners) meta.push(`${proto.partners}+ partners`);
+
+        row.innerHTML = `
+          <div class="protocol-label">
+            <div class="protocol-name">${proto.name}</div>
+            <div class="protocol-meta">${meta.join(' · ')}</div>
+          </div>
+          <div class="protocol-bar-bg">
+            <div class="protocol-bar-fill ${fillClass}" style="width: ${fillWidth}%"></div>
+          </div>
+        `;
+
+        scroll.appendChild(row);
+      });
+    }
+
+    function renderSignals(data) {
+      const scroll = document.getElementById('signal-scroll');
+      scroll.innerHTML = '';
+
+      const signals = data.signals.slice(0, 50);
+      console.log(`[Signals] Rendering ${signals.length} signals`);
+
+      signals.forEach(signal => {
+        const entry = document.createElement('div');
+        entry.className = 'signal-entry';
+
+        const icon = signalTypeIcon(signal.type);
+        const typeLabel = signalTypeLabel(signal.type);
+        const spaceText = signal.space || '—';
+
+        entry.innerHTML = `
+          <div class="signal-date">${data.date}</div>
+          <div class="signal-icon" style="color: ${statusColor(signal.severity)}">${icon}</div>
+          <div class="signal-type" style="color: ${statusColor(signal.severity)}">${typeLabel}</div>
+          <div class="signal-space">${spaceText}</div>
+          <div class="signal-summary">${signal.summary}</div>
+        `;
+
+        scroll.appendChild(entry);
+      });
+    }
+
+    function renderNetworkMap(data) {
+      const canvas = document.getElementById('network-canvas');
+      const ctx = canvas.getContext('2d');
+
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+
+      // ALWAYS show all spaces on network map - filter affects opacity, not presence
+      const spaces = data.spaces;
+      console.log(`[Network] Rendering ${spaces.length} total spaces (may have duplicates)`);
+
+      graphState = createGraph(spaces, EDGES, { width: canvas.width, height: canvas.height });
+      console.log(`[Network] Created graph with ${graphState.nodes.length} unique nodes`);
+
+      graphState = runSimulation(graphState, 150);
+      console.log(`[Network] Simulation complete, energy: ${graphState.energy.toFixed(2)}`);
+
+      drawGraph(ctx, graphState);
+    }
+
+    function drawGraph(ctx, state) {
+      const { nodes, edges, width, height } = state;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw star field background (seeded for consistency)
+      function seededRand(seed) { let s = seed; return () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; }; }
+      const starRng = seededRand(42);
+      ctx.fillStyle = 'rgba(200, 205, 216, 0.08)';
+      for (let i = 0; i < 300; i++) {
+        const x = starRng() * width;
+        const y = starRng() * height;
+        const size = starRng() < 0.1 ? 2 : 1;
+        ctx.fillRect(x, y, size, size);
+      }
+
+      // Draw edges
+      const nodeMap = new Map(nodes.map(n => [n.id, n]));
+      ctx.strokeStyle = 'rgba(55, 65, 90, 0.4)';
+      ctx.lineWidth = 1;
+      edges.forEach(edge => {
+        const source = nodeMap.get(edge.source);
+        const target = nodeMap.get(edge.target);
+        if (!source || !target) return;
+        ctx.beginPath();
+        ctx.moveTo(source.x, source.y);
+        ctx.lineTo(target.x, target.y);
+        ctx.stroke();
+      });
+
+      // Draw nodes
+      nodes.forEach(node => {
+        const color = trustColor(node.trust);
+
+        // Apply dimming if filter active and node not relevant
+        const isDimmed = affectsUsFilter && !isRelevantToUs(node);
+        const opacity = isDimmed ? 0.2 : 1.0;
+
+        ctx.globalAlpha = opacity;
+
+        // Glow for surging nodes (only if not dimmed)
+        if (node.status === 'surging' && !isDimmed) {
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = color;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+
+        // Node shape
+        ctx.fillStyle = color;
+        ctx.beginPath();
+
+        if (node.status === 'surging') {
+          // Diamond
+          ctx.moveTo(node.x, node.y - node.radius);
+          ctx.lineTo(node.x + node.radius, node.y);
+          ctx.lineTo(node.x, node.y + node.radius);
+          ctx.lineTo(node.x - node.radius, node.y);
+          ctx.closePath();
+        } else if (node.status === 'down') {
+          // X mark
+          const r = node.radius * 0.7;
+          ctx.moveTo(node.x - r, node.y - r);
+          ctx.lineTo(node.x + r, node.y + r);
+          ctx.moveTo(node.x + r, node.y - r);
+          ctx.lineTo(node.x - r, node.y + r);
+        } else if (node.isNew) {
+          // Star
+          drawStar(ctx, node.x, node.y, node.radius, 5);
+        } else {
+          // Circle
+          ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        }
+
+        ctx.fill();
+
+        // Blue ring for OpenClaw-relevant
+        if (isRelevantToUs(node)) {
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius + 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Skull for avoid
+        if (node.trust === 'avoid') {
+          ctx.fillStyle = '#fff';
+          ctx.font = `${node.radius}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('☠', node.x, node.y);
+        }
+
+        ctx.shadowBlur = 0;
+
+        // Node label for nodes with radius > 12 (significant spaces)
+        if (node.radius > 10 && !isDimmed) {
+          const label = (node.name || node.id).replace(/\.[^.]+$/, '');
+          ctx.font = '500 9px "IBM Plex Sans", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillStyle = 'rgba(200, 205, 216, 0.7)';
+          ctx.fillText(label, node.x, node.y + node.radius + 4);
+        }
+
+        ctx.globalAlpha = 1.0; // Reset opacity
+      });
+
+      // Draw legend (bottom-left of canvas)
+      const legendX = 14;
+      const legendY = height - 80;
+      ctx.font = '600 9px "JetBrains Mono", monospace';
+      ctx.fillStyle = 'rgba(200, 205, 216, 0.35)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const legendItems = [
+        { shape: 'circle', color: '#22c55e', label: 'HIGH' },
+        { shape: 'circle', color: '#eab308', label: 'MED' },
+        { shape: 'circle', color: '#f97316', label: 'LOW' },
+        { shape: 'circle', color: '#ef4444', label: 'CRIT' },
+      ];
+      legendItems.forEach((item, i) => {
+        const ly = legendY + i * 16;
+        ctx.fillStyle = item.color;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(legendX + 5, ly, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = 'rgba(200, 205, 216, 0.5)';
+        ctx.fillText(item.label, legendX + 14, ly);
+      });
+      ctx.globalAlpha = 1.0;
+
+      // Highlight hovered node
+      if (hoveredNode) {
+        const node = nodes.find(n => n.id === hoveredNode.id);
+        if (node) {
+          ctx.strokeStyle = 'rgba(200, 205, 216, 0.8)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.radius + 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawStar(ctx, cx, cy, radius, points) {
+      const outerRadius = radius;
+      const innerRadius = radius * 0.5;
+      ctx.beginPath();
+      for (let i = 0; i < points * 2; i++) {
+        const angle = (i * Math.PI) / points - Math.PI / 2;
+        const r = i % 2 === 0 ? outerRadius : innerRadius;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+
+    function showTooltip(node, x, y) {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.innerHTML = `
+        <div class="tooltip-name">${node.name}</div>
+        <div class="tooltip-stat">Agents: ${formatAgentCount(node.agents)}</div>
+        <div class="tooltip-stat">Trust: ${node.trust.toUpperCase()}</div>
+        <div class="tooltip-stat">Status: ${node.status.toUpperCase()}</div>
+      `;
+      tooltip.style.left = `${x + 15}px`;
+      tooltip.style.top = `${y + 15}px`;
+      tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip').classList.remove('visible');
+    }
+
+    function showDetailCard(item, type) {
+      const overlay = document.getElementById('detail-overlay');
+      const card = document.getElementById('detail-card');
+
+      if (type === 'space') {
+        card.innerHTML = `
+          <button class="close-btn" onclick="closeDetailCard()">✕</button>
+          <div class="detail-title">${item.name}</div>
+          <div class="detail-meta">${item.url} · ${item.trust.toUpperCase()} TRUST · ${item.status.toUpperCase()}</div>
+          <div class="detail-section">
+            <div class="detail-label">Agents</div>
+            <div class="detail-content">${formatAgentCount(item.agents)}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-label">Description</div>
+            <div class="detail-content">${item.description || 'No description available'}</div>
+          </div>
+          ${item.securityNotes ? `
+            <div class="detail-section">
+              <div class="detail-label">Security Notes</div>
+              <div class="detail-content">${item.securityNotes}</div>
+            </div>
+          ` : ''}
+        `;
+      } else if (type === 'security') {
+        card.innerHTML = `
+          <button class="close-btn" onclick="closeDetailCard()">✕</button>
+          <div class="detail-title">${item.title}</div>
+          <div class="detail-meta">Severity: ${item.severity.toUpperCase()} · First seen: ${item.firstSeen || 'Unknown'}</div>
+          <div class="detail-section">
+            <div class="detail-label">Summary</div>
+            <div class="detail-content">${item.summary}</div>
+          </div>
+          ${item.detail ? `
+            <div class="detail-section">
+              <div class="detail-label">Details</div>
+              <div class="detail-content">${item.detail}</div>
+            </div>
+          ` : ''}
+          ${item.affectsUs ? `
+            <div class="detail-section">
+              <div class="detail-label">Our Status</div>
+              <div class="detail-content">${item.ourStatus ? item.ourStatus.toUpperCase() : 'MONITORING'}</div>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      overlay.classList.add('visible');
+    }
+
+    function closeDetailCard() {
+      document.getElementById('detail-overlay').classList.remove('visible');
+    }
+
+    // Canvas interaction handlers
+    function setupCanvasInteraction() {
+      const canvas = document.getElementById('network-canvas');
+
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const node = hitTest(graphState, x, y);
+
+        if (node) {
+          hoveredNode = node;
+          showTooltip(node, e.clientX, e.clientY);
+          canvas.style.cursor = 'pointer';
+        } else {
+          hoveredNode = null;
+          hideTooltip();
+          canvas.style.cursor = 'grab';
+        }
+
+        const ctx = canvas.getContext('2d');
+        drawGraph(ctx, graphState);
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        hoveredNode = null;
+        hideTooltip();
+        const ctx = canvas.getContext('2d');
+        drawGraph(ctx, graphState);
+      });
+
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const node = hitTest(graphState, x, y);
+        if (node) {
+          showDetailCard(node, 'space');
+        }
+      });
+    }
+
+    // Filter toggle
+    function toggleAffectsUs() {
+      affectsUsFilter = !affectsUsFilter;
+      const btn = document.getElementById('affects-us-btn');
+      btn.classList.toggle('active', affectsUsFilter);
+      render();
+    }
+
+    function render() {
+      if (!currentData) return;
+      renderHeader(currentData);
+      renderSecurityFeed(currentData);
+      renderProtocols(currentData);
+      renderSignals(currentData);
+      renderNetworkMap(currentData);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetailCard();
+      } else if (e.key === 'u' || e.key === 'U') {
+        toggleAffectsUs();
+      } else if (e.key === '?') {
+        alert('Keyboard Shortcuts:\n\nU - Toggle "Affects Us" filter\nESC - Close overlays\n? - Show this help');
+      }
+    });
+
+    // Overlay click to close
+    document.getElementById('detail-overlay').addEventListener('click', (e) => {
+      if (e.target.id === 'detail-overlay') {
+        closeDetailCard();
+      }
+    });
+
+    // Affects Us button
+    document.getElementById('affects-us-btn').addEventListener('click', toggleAffectsUs);
+
+    // Initialize
+    async function init() {
+      try {
+        currentData = await loadData();
+        render();
+        setupCanvasInteraction();
+      } catch (error) {
+        console.error('Initialization error:', error);
+      } finally {
+        // ALWAYS dismiss loading screen after max 1.5s
+        setTimeout(() => {
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('dashboard').style.opacity = '1';
+        }, 1500);
+      }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (currentData) {
+        const canvas = document.getElementById('network-canvas');
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        renderNetworkMap(currentData);
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

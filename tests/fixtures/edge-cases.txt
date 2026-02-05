@@ -1,0 +1,14 @@
+PULSE ◇ 2026-02-05 ◇ crawl #999
+-------------------------------------
+unicode-test.ai ● active (~500 agents)
+range-test.com ▲ surging (500-1000 members)
+duplicate.org ● active (100 agents)
+duplicate.org ● active (200 agents)
+
+KNOWN SPACES
+------------
+very-long-description.com ● MEDIUM TRUST. This is an extremely long description that wraps across multiple lines and contains various details about the platform including metrics like 1,500 agents and features like authentication via multiple protocols including OAuth2, SAML, and custom JWT implementations with rotating keys.
+
+TRUST NOTES
+-----------
+MEDIUM : very-long-description.com (verified)
