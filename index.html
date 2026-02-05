@@ -523,8 +523,7 @@
     }
 
     .loading.hidden {
-      opacity: 0;
-      pointer-events: none;
+      display: none !important;
     }
 
     /* Scrollbar Styling */
@@ -714,6 +713,15 @@
 <body>
   <!-- Loading Screen -->
   <div class="loading" id="loading">INITIALIZING SIGNAL...</div>
+  <script>
+    // Failsafe: always dismiss loading screen after 3s no matter what
+    setTimeout(function() {
+      var el = document.getElementById('loading');
+      if (el) el.style.display = 'none';
+      var db = document.getElementById('dashboard');
+      if (db) db.style.opacity = '1';
+    }, 3000);
+  </script>
 
   <!-- Main Dashboard -->
   <div class="dashboard" id="dashboard" style="opacity: 0; transition: opacity 0.5s;">
