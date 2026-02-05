@@ -41,7 +41,7 @@
       font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text-primary);
-      overflow: hidden;
+      overflow-x: hidden;
       height: 100vh;
     }
 
@@ -157,6 +157,7 @@
       width: 100%;
       height: 100%;
       cursor: grab;
+      touch-action: none;
     }
 
     .network-canvas:active {
@@ -567,6 +568,143 @@
     .panel-reveal:nth-child(3) { animation-delay: 0.3s; }
     .panel-reveal:nth-child(4) { animation-delay: 0.4s; }
     .panel-reveal:nth-child(5) { animation-delay: 0.5s; }
+    /* ===== Mobile / Tablet Responsive ===== */
+
+    @media (max-width: 1024px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        height: auto;
+        overflow-y: auto;
+      }
+
+      body {
+        overflow-y: auto;
+        height: auto;
+      }
+
+      .header {
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        gap: 8px;
+      }
+
+      .header-left {
+        gap: 12px;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .vitals-ticker {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .vital-pill {
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+
+      .network-map {
+        height: 50vh;
+        min-height: 300px;
+      }
+
+      .security-feed {
+        max-height: 400px;
+      }
+
+      .protocol-tracker {
+        max-height: 300px;
+      }
+
+      .signal-stream {
+        max-height: 300px;
+      }
+
+      .detail-card {
+        width: 90vw;
+        max-height: 85vh;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .logo {
+        font-size: 15px;
+        letter-spacing: 1px;
+      }
+
+      .crawl-info {
+        font-size: 11px;
+      }
+
+      .vital-pill {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+      }
+
+      .filter-btn {
+        font-size: 11px;
+        padding: 4px 10px;
+      }
+
+      .network-map {
+        height: 40vh;
+        min-height: 250px;
+      }
+
+      .panel-header {
+        padding: 12px 14px;
+        font-size: 12px;
+      }
+
+      .security-card {
+        padding: 10px;
+        margin-bottom: 6px;
+      }
+
+      .security-title {
+        font-size: 12px;
+      }
+
+      .security-summary {
+        font-size: 11px;
+      }
+
+      .protocol-scroll {
+        padding: 8px 12px;
+      }
+
+      .signal-scroll {
+        padding: 8px 12px;
+        font-size: 10px;
+      }
+
+      .signal-entry {
+        grid-template-columns: 70px 12px 58px 70px 1fr;
+        gap: 4px;
+        font-size: 10px;
+      }
+
+      .tooltip {
+        max-width: 250px;
+        font-size: 11px;
+      }
+
+      .detail-card {
+        width: 95vw;
+        padding: 16px;
+      }
+
+      .detail-title {
+        font-size: 16px;
+      }
+    }
+
   </style>
 </head>
 <body>
