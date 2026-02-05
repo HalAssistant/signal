@@ -1249,8 +1249,15 @@
       const ctx = canvas.getContext('2d');
 
       const container = canvas.parentElement;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      let w = container.clientWidth;
+      let h = container.clientHeight;
+
+      // Fallback: if container hasn't laid out yet (mobile flex), use viewport
+      if (!w || w < 50) w = window.innerWidth;
+      if (!h || h < 50) h = Math.min(window.innerHeight * 0.5, 400);
+
+      canvas.width = w;
+      canvas.height = h;
 
       // ALWAYS show all spaces on network map - filter affects opacity, not presence
       const spaces = data.spaces;
@@ -1615,6 +1622,13 @@
     });
 
     init();
+
+    // Re-render network map after layout settles (fixes mobile canvas sizing)
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (currentData) renderNetworkMap(currentData);
+      }, 500);
+    });
   </script>
 </body>
 </html>
