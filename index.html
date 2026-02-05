@@ -1582,16 +1582,14 @@
         setupCanvasInteraction();
       } catch (error) {
         console.error('Initialization error:', error);
-      } catch (initErr) {
-        console.error('Init error:', initErr);
       }
-      // ALWAYS dismiss loading screen — immediately if data loaded, 1.5s max otherwise
+      // ALWAYS dismiss loading screen
       const dismiss = () => {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('dashboard').style.opacity = '1';
       };
       if (currentData && currentData.spaces && currentData.spaces.length > 0) {
-        setTimeout(dismiss, 500);
+        setTimeout(dismiss, 300);
       } else {
         setTimeout(dismiss, 1500);
       }
