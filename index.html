@@ -1287,12 +1287,24 @@
         ctx.stroke();
       });
 
-      // DEBUG: Draw a bright test circle at center
+      // DEBUG: Draw white dots at ALL node positions first
+      let validNodes = 0;
+      let nanNodes = 0;
+      ctx.fillStyle = '#ffffff';
+      nodes.forEach((n, i) => {
+        if (isNaN(n.x) || isNaN(n.y) || isNaN(n.radius)) {
+          nanNodes++;
+          return;
+        }
+        validNodes++;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      // DEBUG: Show count in corner
       ctx.fillStyle = '#ff0000';
-      ctx.beginPath();
-      ctx.arc(width/2, height/2, 20, 0, Math.PI * 2);
-      ctx.fill();
-      console.log(`[DEBUG] First 3 nodes:`, nodes.slice(0,3).map(n => ({id:n.id, x:Math.round(n.x), y:Math.round(n.y), r:n.radius, trust:n.trust})));
+      ctx.font = '14px monospace';
+      ctx.fillText(`${validNodes} valid, ${nanNodes} NaN`, 10, 30);
 
       // Draw nodes
       nodes.forEach(node => {
