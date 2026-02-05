@@ -523,7 +523,8 @@
     }
 
     .loading.hidden {
-      display: none !important;
+      opacity: 0;
+      pointer-events: none;
     }
 
     /* Scrollbar Styling */
@@ -713,15 +714,6 @@
 <body>
   <!-- Loading Screen -->
   <div class="loading" id="loading">INITIALIZING SIGNAL...</div>
-  <script>
-    // Failsafe: always dismiss loading screen after 3s no matter what
-    setTimeout(function() {
-      var el = document.getElementById('loading');
-      if (el) el.style.display = 'none';
-      var db = document.getElementById('dashboard');
-      if (db) db.style.opacity = '1';
-    }, 3000);
-  </script>
 
   <!-- Main Dashboard -->
   <div class="dashboard" id="dashboard" style="opacity: 0; transition: opacity 0.5s;">
@@ -1249,15 +1241,8 @@
       const ctx = canvas.getContext('2d');
 
       const container = canvas.parentElement;
-      let w = container.clientWidth;
-      let h = container.clientHeight;
-
-      // Fallback: if container hasn't laid out yet (mobile flex), use viewport
-      if (!w || w < 50) w = window.innerWidth;
-      if (!h || h < 50) h = Math.min(window.innerHeight * 0.5, 400);
-
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
 
       // ALWAYS show all spaces on network map - filter affects opacity, not presence
       const spaces = data.spaces;
@@ -1270,12 +1255,6 @@
       console.log(`[Network] Simulation complete, energy: ${graphState.energy.toFixed(2)}`);
 
       drawGraph(ctx, graphState);
-
-      // Debug: show canvas info (temporary - remove after mobile is confirmed working)
-      ctx.fillStyle = 'rgba(200,205,216,0.3)';
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${w}×${h} · ${graphState.nodes.length} nodes`, w - 8, 14);
     }
 
     function drawGraph(ctx, state) {
@@ -1307,6 +1286,13 @@
         ctx.lineTo(target.x, target.y);
         ctx.stroke();
       });
+
+      // DEBUG: Draw a bright test circle at center
+      ctx.fillStyle = '#ff0000';
+      ctx.beginPath();
+      ctx.arc(width/2, height/2, 20, 0, Math.PI * 2);
+      ctx.fill();
+      console.log(`[DEBUG] First 3 nodes:`, nodes.slice(0,3).map(n => ({id:n.id, x:Math.round(n.x), y:Math.round(n.y), r:n.radius, trust:n.trust})));
 
       // Draw nodes
       nodes.forEach(node => {
@@ -1616,23 +1602,18 @@
       }
     }
 
-    // Handle window resize — just re-render (renderNetworkMap handles sizing)
+    // Handle window resize
     window.addEventListener('resize', () => {
-      if (currentData) renderNetworkMap(currentData);
+      if (currentData) {
+        const canvas = document.getElementById('network-canvas');
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        renderNetworkMap(currentData);
+      }
     });
 
     init();
-
-    // Re-render after layout settles (mobile flex needs time)
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        if (currentData) renderNetworkMap(currentData);
-      }, 600);
-      // And again after a longer delay for slow mobile layouts
-      setTimeout(() => {
-        if (currentData) renderNetworkMap(currentData);
-      }, 2000);
-    });
   </script>
 </body>
 </html>
