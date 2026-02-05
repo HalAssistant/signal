@@ -1270,6 +1270,12 @@
       console.log(`[Network] Simulation complete, energy: ${graphState.energy.toFixed(2)}`);
 
       drawGraph(ctx, graphState);
+
+      // Debug: show canvas info (temporary - remove after mobile is confirmed working)
+      ctx.fillStyle = 'rgba(200,205,216,0.3)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${w}×${h} · ${graphState.nodes.length} nodes`, w - 8, 14);
     }
 
     function drawGraph(ctx, state) {
@@ -1610,24 +1616,22 @@
       }
     }
 
-    // Handle window resize
+    // Handle window resize — just re-render (renderNetworkMap handles sizing)
     window.addEventListener('resize', () => {
-      if (currentData) {
-        const canvas = document.getElementById('network-canvas');
-        const container = canvas.parentElement;
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        renderNetworkMap(currentData);
-      }
+      if (currentData) renderNetworkMap(currentData);
     });
 
     init();
 
-    // Re-render network map after layout settles (fixes mobile canvas sizing)
+    // Re-render after layout settles (mobile flex needs time)
     window.addEventListener('load', () => {
       setTimeout(() => {
         if (currentData) renderNetworkMap(currentData);
-      }, 500);
+      }, 600);
+      // And again after a longer delay for slow mobile layouts
+      setTimeout(() => {
+        if (currentData) renderNetworkMap(currentData);
+      }, 2000);
     });
   </script>
 </body>
